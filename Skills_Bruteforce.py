@@ -185,7 +185,7 @@ def setup():
 def teamMap(team, year):
     print(f"Trying Team {team}")
     array = [[1,31],[2,29],[3,31],[4,30],[5,31],[6,30],[7,31],[8,31],[9,30],[10,31],[11,30],[12,31]]
-    with Pool(PROC) as p:
+    with Pool(12) as p:
         for iter in array:
             iter.append(year)
             iter.append(team)
