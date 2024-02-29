@@ -7,6 +7,6 @@ set line 328 `w.daemon = False`
   
 # Packages  
 install pip packages  
-`pip install requests console-menu beautifulsoup4`  
+```pip install requests console-menu beautifulsoup4```  
 
 
